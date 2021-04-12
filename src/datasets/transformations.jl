@@ -1,3 +1,5 @@
+using WordTokenizers
+using WordTokenizers: TokenBuffer, flush!, character, isdone, spaces, tokenize
 
 # mapobs
 
@@ -41,8 +43,9 @@ struct NamedTupleData{TData, F}
     namedfs::NamedTuple{F}
 end
 
-LearnBase.nobs(data::NamedTupleData) = nobs(getfield(data, :data))
+# LearnBase functions {nobs, getobs} for NamedTupleData
 
+LearnBase.nobs(data::NamedTupleData) = nobs(getfield(data, :data))
 function LearnBase.getobs(data::NamedTupleData{TData, F}, idx::Int) where {TData, F}
     obs = getobs(getfield(data, :data), idx)
     namedfs = getfield(data, :namedfs)
@@ -133,6 +136,8 @@ end
 
 JoinedData(datas) = JoinedData(datas, nobs.(datas))
 
+# LearnBase functions {nobs, getobs} for JoinedData
+
 LearnBase.nobs(data::JoinedData) = sum(data.ns)
 function LearnBase.getobs(data::JoinedData, idx)
     for (i, n) in enumerate(data.ns)
@@ -157,6 +162,34 @@ getobs(jdata, 15) == 15
 """
 joinobs(datas...) = JoinedData(datas)
 
+struct Tokenizer{T<:AbstractArray{<:AbstractString}}
+    data::T
+end
+
+"""
+    tokenize(type, input)
+    type = :words or :chars
+
+Tokenizes an input string or stream into pieces depending on selected type. 
+"""
+
+function tokenize_input(type,input)
+    ts = TokenBuffer(input)
+    if type === :chars
+        while !isdone(ts)
+            character(ts)
+            flush!(ts)
+        end
+    elseif type === :words
+        ts.tokens = WordTokenizers.tokenize(input)
+    end
+    return Tokenizer(ts.tokens)
+end
+
+# LearnBase functions {nobs, getobs} for Tokens
+
+LearnBase.nobs(toks::Tokenizer) = length(toks.data)
+LearnBase.getobs(toks::Tokenizer, idx) = toks.data[idx]
 
 # TODO: NamedTupleData transformation
 #
