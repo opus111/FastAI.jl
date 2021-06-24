@@ -42,7 +42,7 @@ const DATASETCONFIGS = [
     FastAIDataset("mnist_png", "imageclas", "9e18edaa3a08b065d8f80a019ca04329e6d9b3e391363414a9bd1ada30563672"),
     FastAIDataset("mnist_var_size_tiny", "imageclas", "8a0f6ca04c2d31810dc08e739c7fa9b612e236383f70dd9fc6e5a62e672e2283"),
     FastAIDataset("oxford-102-flowers", "imageclas"),
-    FastAIDataset("oxford-iiit-pet", "imageclas"),
+    FastAIDataset("oxford-iiit-pet", "imageclas", "3f1b76957366427dd5c12e3d48488be28dabd99a403bdb2b5100a83b9fd162d4", size="774MiB"),
     FastAIDataset("stanford-cars", "imageclas"),
 
     # nlp
@@ -63,7 +63,7 @@ const DATASETCONFIGS = [
     FastAIDataset("biwi_head_pose", "imagelocal", "9cfefd53ed85f824c5908bc6eb21fc719583eec57a7df1d8141d3156645693cf", size="430MiB"),
     FastAIDataset("camvid", "imagelocal"),
     FastAIDataset("pascal-voc", "imagelocal"),
-    FastAIDataset("pascal_2007", "imagelocal"),
+    FastAIDataset("pascal_2007", "imagelocal", "ff41115e7f3fff9d923c1b5c517b6b208906b344dfa945855e18064e589a2a99", size="1.52GiB"),
     FastAIDataset("pascal_2012", "imagelocal"),
     FastAIDataset("siim_small", "imagelocal"),
     FastAIDataset("skin-lesion", "imagelocal"),
