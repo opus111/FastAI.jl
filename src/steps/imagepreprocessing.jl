@@ -46,16 +46,6 @@ struct ImagePreprocessing
     inferencetfm
 end
 
-function Base.show(io::IO, ip::ImagePreprocessing)
-    show(io, ShowTypeOf(ip))
-    fields = (
-        C = ShowLimit(ip.C, limit=80),
-        T = ShowLimit(ip.T, limit=80),
-        buffered = ShowLimit(ip.buffered, limit=80),
-        augmentations = ShowLimit(ip.augmentations, limit=80),
-    )
-    show(io, ShowProps(fields, new_lines=true))
-end
 
 function Base.show(io::IO, ip::ImagePreprocessing)
     show(io, ShowTypeOf(ip))
