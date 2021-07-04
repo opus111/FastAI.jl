@@ -166,6 +166,15 @@ end
 
 # Training interface
 
+"""
+    methodmodel(method::ImageClassifiction, backbone)
+
+Construct a model for image classification from `backbone` which should
+be a convolutional feature extractor like a ResNet (without the
+classification head).
+
+The input and output sizes are `(h, w, 3, b)` and `(length(method.classes), b)`.
+"""
 function DLPipelines.methodmodel(method::AbstractImageClassification, backbone)
     h, w, ch, b = Flux.outdims(backbone, (method.projections.sz..., 3, 1))
     head = Models.visionhead(ch, length(method.classes), p = 0.)
