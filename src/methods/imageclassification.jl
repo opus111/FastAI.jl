@@ -1,5 +1,7 @@
 
 
+abstract type AbstractImageClassification <: LearningMethod end
+
 """
     ImageClassification(classes, [sz = (224, 224); kwargs...]) <: LearningMethod
 
@@ -58,13 +60,19 @@ It is recommended *not* to use [`Flux.softmax`](#) as the final layer for custom
 Instead use [`Flux.logitcrossentropy`](#) as the loss function for increased numerical
 stability. This is done automatically if using with `methodmodel` and `methodlossfn`.
 """
-mutable struct ImageClassification{N} <: DLPipelines.LearningMethod
+mutable struct ImageClassification{N} <: AbstractImageClassification
     classes::AbstractVector
     projections::ProjectiveTransforms{N}
     imagepreprocessing::ImagePreprocessing
 end
 
-function Base.show(io::IO, method::ImageClassification)
+mutable struct ImageClassificationMulti{N} <: AbstractImageClassification
+    classes::AbstractVector
+    projections::ProjectiveTransforms{N}
+    imagepreprocessing::ImagePreprocessing
+end
+
+function Base.show(io::IO, method::AbstractImageClassification)
     show(io, ShowTypeOf(method))
     fields = (
         classes = ShowLimit(ShowList(method.classes, brackets="[]"), limit=80),
@@ -93,8 +101,13 @@ end
 
 # Core interface implementation
 
+DLPipelines.encode(method::AbstractImageClassification, context, (input, target)) = (
+    encodeinput(method, context, input),
+    encodetarget(method, context, target),
+)
+
 function DLPipelines.encodeinput(
-        method::ImageClassification,
+        method::AbstractImageClassification,
         context,
         image)
     imagecropped = run(method.projections, context, image)
@@ -126,46 +139,34 @@ end
 
 DLPipelines.decodeŷ(method::ImageClassification, context, ŷ) = method.classes[argmax(ŷ)]
 
-# Interpretation interface
-
-DLPipelines.interpretinput(::ImageClassification, image) = image
-
-function DLPipelines.interpretx(method::ImageClassification, x)
-    return invert(method.imagepreprocessing, x)
-end
-
-
-function DLPipelines.interprettarget(task::ImageClassification, class)
-    return "Class $class"
-end
-
 # Plotting interface
 
-function plotsample!(f, method::ImageClassification, sample)
+function plotsample!(f, method::AbstractImageClassification, sample)
     image, class = sample
     f[1, 1] = ax1 = imageaxis(f, title = string(class))
     plotimage!(ax1, image)
 end
 
-function plotxy!(f, method::ImageClassification, x, y)
+function plotxy!(f, method::AbstractImageClassification, x, y)
     image = invert(method.imagepreprocessing, x)
+    target = decodeŷ(method, Validation(), y)
     i = argmax(y)
-    ax1 = f[1, 1] = imageaxis(f, title = "$(method.classes[i]) ($(y[i]))", titlesize=12.)
+    ax1 = f[1, 1] = imageaxis(f, title = "$target", titlesize=12.)
     plotimage!(ax1, image)
 end
 
-function plotprediction!(f, method::ImageClassification, x, ŷ, y)
+function plotprediction!(f, method::AbstractImageClassification, x, ŷ, y)
     image = invert(method.imagepreprocessing, x)
-    gt = method.classes[argmax(y)]
-    pred = method.classes[argmax(ŷ)]
-    ax1 = f[1, 1] = imageaxis(f, title = "Pred: $pred | GT: $gt", titlesize=12.)
+    target = decodeŷ(method, Validation(), y)
+    target_pred = decodeŷ(method, Validation(), ŷ)
+    ax1 = f[1, 1] = imageaxis(f, title = "Pred: $target_pred | GT: $target", titlesize=12.)
     plotimage!(ax1, image)
     return f
 end
 
 # Training interface
 
-function DLPipelines.methodmodel(method::ImageClassification, backbone)
+function DLPipelines.methodmodel(method::AbstractImageClassification, backbone)
     h, w, ch, b = Flux.outdims(backbone, (method.projections.sz..., 3, 1))
     head = Models.visionhead(ch, length(method.classes), p = 0.)
     return Chain(backbone, head)
@@ -174,6 +175,11 @@ end
 DLPipelines.methodlossfn(::ImageClassification) = Flux.Losses.logitcrossentropy
 
 # Testing interface
+
+DLPipelines.mocksample(method::AbstractImageClassification) = (
+    mockinput(method),
+    mocktarget(method),
+)
 
 function DLPipelines.mockinput(method::ImageClassification)
     inputsz = rand.(UnitRange.(method.projections.sz, method.projections.sz .* 2))
