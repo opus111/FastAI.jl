@@ -39,10 +39,12 @@ include("./steps/step.jl")
 include("./steps/spatial.jl")
 include("augmentation.jl")
 include("./steps/imagepreprocessing.jl")
+include("./steps/tabularpreprocessing.jl")
 include("./methods/imageclassification.jl")
 include("./methods/imagesegmentation.jl")
 include("./methods/singlekeypointregression.jl")
 include("./methods/checks.jl")
+include("./methods/tabularregression.jl")
 
 
 # submodules
@@ -95,11 +97,13 @@ export
 
     # pipeline steps
     ProjectiveTransforms, ImagePreprocessing, augs_projection, augs_lighting,
+    TabularTransforms,
 
     # methods
     ImageClassification,
     ImageSegmentation,
     SingleKeypointRegression,
+    TabularRegression,
 
     # training
     methodlearner,
