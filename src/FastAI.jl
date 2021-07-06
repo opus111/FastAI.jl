@@ -27,6 +27,8 @@ using MLDataPattern
 using Parameters
 using StaticArrays
 using ShowCases
+using Tables
+using Statistics
 using Test: @testset, @test, @test_nowarn
 
 include("tasks.jl")
@@ -97,7 +99,7 @@ export
 
     # pipeline steps
     ProjectiveTransforms, ImagePreprocessing, augs_projection, augs_lighting,
-    TabularTransforms,
+    TabularTransforms, gettransformationdict,
 
     # methods
     ImageClassification,
