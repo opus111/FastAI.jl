@@ -25,6 +25,7 @@ end
 
 
 function testlearner(args...; nbatches = 16, coeff = 3, batchsize = 8, kwargs...)
+
     model = TestModel(rand())
     data = collect(testbatches(nbatches, coeff, batchsize))
     opt = Descent(0.001)

@@ -3,8 +3,10 @@ include("../imports.jl")
 
 @testset ExtendedTestSet "`ImageClassification`" begin
     @testset ExtendedTestSet "Core interface" begin
-        DLPipelines.checkmethod_core(ImageClassification(1:10, (32, 32)))
-        FastAI.checkmethod_plot(ImageClassification(1:10, (32, 32)))
+        method = ImageClassification(1:10, (32, 32))
+        @test method isa ImageClassificationSingle
+        DLPipelines.checkmethod_core(method)
+        FastAI.checkmethod_plot(method)
 
         @testset ExtendedTestSet "`encodeinput`" begin
             method = ImageClassification(1:10, (32, 32))
@@ -35,4 +37,13 @@ include("../imports.jl")
             @test_nowarn encode(method, Training(), (image, category))
         end
     end
+end
+
+
+@testset ExtendedTestSet "`ImageClassificationMulti`" begin
+    method = ImageClassification(1:10, (32, 32), multi_class = true)
+    @test method isa ImageClassificationMulti
+    DLPipelines.checkmethod_core(method)
+    FastAI.checkmethod_plot(ImageClassificationMulti(1:10, (32, 32)))
+
 end

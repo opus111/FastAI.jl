@@ -2,28 +2,43 @@
 
 abstract type AbstractImageClassification <: LearningMethod end
 
+function Base.show(io::IO, method::AbstractImageClassification)
+    show(io, ShowTypeOf(method))
+    fields = (
+        classes = ShowLimit(ShowList(method.classes, brackets="[]"), limit=80),
+        projections = method.projections,
+        imageprepocessing = method.imagepreprocessing
+    )
+    show(io, ShowProps(fields, new_lines=true))
+end
+
+DLPipelines.encode(method::AbstractImageClassification, context, (input, target)) = (
+    encodeinput(method, context, input),
+    encodetarget(method, context, target),
+)
+
+function DLPipelines.encodeinput(
+        method::AbstractImageClassification,
+        context,
+        image)
+    imagecropped = run(method.projections, context, image)
+    x = run(method.imagepreprocessing, context, imagecropped)
+    return x
+end
+
+
+
 """
-    ImageClassification(classes, [sz = (224, 224); kwargs...]) <: LearningMethod
+    struct ImageClassificationSingle(classes, projections, preprocessing) <: LearningMethod
 
 A learning method for single-label image classification:
 given an image and a set of `classes`, determine which class the image
 falls into. For example, decide if an image contains a dog or a cat.
 
+See [`ImageClassification`](#) as a helpful constructor.
+
 Images are resized and cropped to `sz` (see [`ProjectiveTransforms`](#))
 and preprocessed using [`ImagePreprocessing`](#). `classes` is a vector of the class labels.
-
-## Keyword arguments
-
-- `aug_projection::`[`DataAugmentation.Transform`](#)` = Identity()`: Projective
-    augmentation to apply during training. See
-    [`ProjectiveTransforms`](#) and [`augs_projection`](#).
-- `aug_image::`[`DataAugmentation.Transform`](#)` = Identity()`: Other image
-    augmentation to apply to cropped image during training. See
-    [`ImagePreprocessing`](#) and [`augs_lighting`](#).
-- `means = IMAGENET_MEANS` and `stds = IMAGENET_STDS`: Color channel means and
-    standard deviations to use for normalizing the image.
-- `buffered = true`: Whether to use inplace transformations when projecting and
-  preprocessing image. Reduces memory usage.
 
 ## Learning method reference
 
@@ -60,7 +75,7 @@ It is recommended *not* to use [`Flux.softmax`](#) as the final layer for custom
 Instead use [`Flux.logitcrossentropy`](#) as the loss function for increased numerical
 stability. This is done automatically if using with `methodmodel` and `methodlossfn`.
 """
-mutable struct ImageClassification{N} <: AbstractImageClassification
+mutable struct ImageClassificationSingle{N} <: AbstractImageClassification
     classes::AbstractVector
     projections::ProjectiveTransforms{N}
     imagepreprocessing::ImagePreprocessing
@@ -72,19 +87,36 @@ mutable struct ImageClassificationMulti{N} <: AbstractImageClassification
     imagepreprocessing::ImagePreprocessing
 end
 
-function Base.show(io::IO, method::AbstractImageClassification)
-    show(io, ShowTypeOf(method))
-    fields = (
-        classes = ShowLimit(ShowList(method.classes, brackets="[]"), limit=80),
-        projections = method.projections,
-        imageprepocessing = method.imagepreprocessing
-    )
-    show(io, ShowProps(fields, new_lines=true))
-end
 
+"""
+    ImageClassification(classes, [sz = (224, 224); multi_class = false, kwargs...]) <: LearningMethod
+
+Helper for constructing image classification learning method, either
+[`ImageClassificationSingle`](#) or [`ImageClassificationMulti`](#).
+
+Images are resized and cropped to `sz` (see [`ProjectiveTransforms`](#))
+and preprocessed using [`ImagePreprocessing`](#). `classes` is a vector of the class labels.
+
+## Keyword arguments
+
+- `multi_class = false`: Whether to learn to predict a single class or multiple.
+- `multi_thresh = false`: Threshold for prediction. Only used if `multi_class == true`.
+- `aug_projection::`[`DataAugmentation.Transform`](#)` = Identity()`: Projective
+    augmentation to apply during training. See
+    [`ProjectiveTransforms`](#) and [`augs_projection`](#).
+- `aug_image::`[`DataAugmentation.Transform`](#)` = Identity()`: Other image
+    augmentation to apply to cropped image during training. See
+    [`ImagePreprocessing`](#) and [`augs_lighting`](#).
+- `means = IMAGENET_MEANS` and `stds = IMAGENET_STDS`: Color channel means and
+    standard deviations to use for normalizing the image.
+- `buffered = true`: Whether to use inplace transformations when projecting and
+  preprocessing image. Reduces memory usage.
+"""
 function ImageClassification(
         classes::AbstractVector,
         sz=(224, 224);
+        multi_class = false,
+        multi_thresh = 0.5,
         aug_projection=Identity(),
         aug_image=Identity(),
         means=IMAGENET_MEANS,
@@ -95,29 +127,15 @@ function ImageClassification(
     )
     projectivetransforms = ProjectiveTransforms(sz; augmentations=aug_projection, buffered=buffered)
     imagepreprocessing = ImagePreprocessing(;means=means, stds=stds, augmentations=aug_image, C=C, T=T)
-    ImageClassification(classes, projectivetransforms, imagepreprocessing)
+    Method = multi_class ? ImageClassificationMulti : ImageClassificationSingle
+    return Method(classes, projectivetransforms, imagepreprocessing)
 end
 
 
 # Core interface implementation
 
-DLPipelines.encode(method::AbstractImageClassification, context, (input, target)) = (
-    encodeinput(method, context, input),
-    encodetarget(method, context, target),
-)
-
-function DLPipelines.encodeinput(
-        method::AbstractImageClassification,
-        context,
-        image)
-    imagecropped = run(method.projections, context, image)
-    x = run(method.imagepreprocessing, context, imagecropped)
-    return x
-end
-
-
 function DLPipelines.encodetarget(
-        method::ImageClassification,
+        method::ImageClassificationSingle,
         context,
         category)
     idx = findfirst(isequal(category), method.classes)
@@ -128,7 +146,7 @@ end
 
 function DLPipelines.encodetarget!(
         y::AbstractVector{T},
-        method::ImageClassification,
+        method::ImageClassificationSingle,
         context,
         category) where T
     fill!(y, zero(T))
@@ -186,8 +204,8 @@ DLPipelines.methodlossfn(::ImageClassification) = Flux.Losses.logitcrossentropy
 # Testing interface
 
 DLPipelines.mocksample(method::AbstractImageClassification) = (
-    mockinput(method),
-    mocktarget(method),
+    DLPipelines.mockinput(method),
+    DLPipelines.mocktarget(method),
 )
 
 function DLPipelines.mockinput(method::ImageClassification)

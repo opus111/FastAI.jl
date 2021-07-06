@@ -98,6 +98,8 @@ export
 
     # methods
     ImageClassification,
+    ImageClassificationMulti,
+    ImageClassificationSingle,
     ImageSegmentation,
     SingleKeypointRegression,
 
