@@ -4,6 +4,7 @@ using FastAI
 using FastAI: ParamGroups, IndexGrouper, getgroup, DiscriminativeLRs, decay_optim
 using FilePathsBase
 using FastAI.Datasets
+using FastAI.Models
 using DLPipelines
 using DataAugmentation
 using DataAugmentation: getbounds
