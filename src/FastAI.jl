@@ -47,6 +47,7 @@ include("./methods/imagesegmentation.jl")
 include("./methods/singlekeypointregression.jl")
 include("./methods/checks.jl")
 include("./methods/tabularregression.jl")
+include("./methods/tabularclassification.jl")
 
 
 # submodules
@@ -106,6 +107,7 @@ export
     ImageSegmentation,
     SingleKeypointRegression,
     TabularRegression,
+    TabularClassification,
 
     # training
     methodlearner,
